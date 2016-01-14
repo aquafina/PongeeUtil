@@ -1,0 +1,138 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pongeeutil;
+
+import java.awt.AWTException;
+import java.awt.Image;
+import java.awt.MenuItem;
+import java.awt.PopupMenu;
+import java.awt.Toolkit;
+import java.awt.TrayIcon;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
+import javax.swing.JOptionPane;
+
+/**
+ *
+ * @author IamUsman
+ */
+public class PongeeUtil {
+
+    /**
+     * @param args the command line arguments
+     */
+    static PreparedStatement ps;
+    static ResultSet rs;
+    static Connection connAccess;
+    static TrayIcon trayIcon;
+    static Image image;
+    static java.awt.SystemTray st;
+    static Image bi;
+    static Connection connection;
+
+    public static void main(String[] args) {
+
+        
+
+    }
+
+    private static Connection getConnection() throws Exception {
+        String driver = "sun.jdbc.odbc.JdbcOdbcDriver";
+        String url = "jdbc:odbc:TestDS2";
+        showTrayIcon();
+        String filepath = "C:/file/1037.MDB";
+        BufferedReader br = new BufferedReader(new InputStreamReader(PongeeUtil.class.getResourceAsStream("path.txt")));
+        String path = br.readLine();
+        String url2 = "jdbc:odbc:driver={Microsoft Access Driver (*.mdb)};DBQ=" + path;
+        //String url2 = "jdbc:odbc:driver={Microsoft Access Driver (*.mdb)};DBQ=/DS/1037.MDB";
+        String username = "";
+        String password = "";
+        Class.forName(driver);
+        return DriverManager.getConnection(url2, username, password);
+    }
+
+    public static void showTrayIcon() {
+        if (java.awt.SystemTray.isSupported()) {
+            st = java.awt.SystemTray.getSystemTray();
+
+            //image = Toolkit.getDefaultToolkit().getImage("image/export.png");
+            image = Toolkit.getDefaultToolkit().getImage(PongeeUtil.class.getResource("beating_1.png"));
+
+
+            ActionListener listener = new ActionListener() {
+
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        JOptionPane.showMessageDialog(null, "Exit Program ?");
+                        rs.afterLast();
+                        connAccess.close();
+                        connection.close();
+                        System.exit(0);
+                    } catch (SQLException ex) {
+                        Logger.getLogger(PongeeUtil.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            };
+
+            PopupMenu popup = new PopupMenu();
+
+            MenuItem defaultItem = new MenuItem("sdf");
+            defaultItem.addActionListener(listener);
+            popup.add(defaultItem);
+
+            trayIcon = new TrayIcon(image, "Tray Demo", popup);
+
+            trayIcon.addActionListener(listener);
+            try {
+                st.add(trayIcon);
+
+            } catch (AWTException e) {
+                System.err.println(e);
+            }
+        }
+    }
+    static Thread readerThread = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    //showTrayIcon();
+                    connAccess = getConnection();
+                    Class.forName("oracle.jdbc.driver.OracleDriver");
+                    connection =
+                            DriverManager.getConnection("jdbc:oracle:thin:@192.168.0.4:1525:ERPTEST4",
+                            "XX_E_PORTAL", "mskiz145");
+                    ps = connAccess.prepareStatement("select * from Access"
+                            );
+                    rs = ps.executeQuery();
+                    while (rs.next()) {
+                        String name = rs.getString("Name");
+                        System.out.println(name);
+                        PreparedStatement ps = connection.prepareStatement("insert into xx_test values(?)");
+                        ps.setString(1, name);
+                        System.out.println("inserted: " + ps.executeUpdate());
+                        ps.close();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+}
